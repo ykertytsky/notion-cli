@@ -48,3 +48,8 @@ htmlcov/
 
 # Sphinx documentation
 docs/_build/
+
+
+# Confidential info
+config.py
+output.json
