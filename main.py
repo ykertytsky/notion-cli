@@ -4,11 +4,8 @@ from datetime import datetime, timedelta
 
 import json
 
-from page_schema import new_page_properties
 
 from config import NOTION_API_KEY, DATABASE_ID
-
-
 
 
 
@@ -75,12 +72,39 @@ def create_page(notion, database_id, page_title, due_date):
     except Exception as e:
         # Print any errors that occur
         print("An error occurred while creating the page:", e)
-    pass
+
+def times_occurence(kind, times, title, date):
+    for i in range(times):
+        match kind:
+            case "daily":
+                create_page(notion, DATABASE_ID, title, date)
+                date+= timedelta(days=1)
+            case "weekly":
+                create_page(notion, DATABASE_ID, title, date)
+                date+= timedelta(weeks=1)
+            case "monthly":
+                create_page(notion, DATABASE_ID, title, date)
+                date+=timedelta(weeks=4)
+def till_date(kind, title, deadline):
+    date = datetime.today()
+    while date<=deadline:
+        match kind:
+            case "daily":
+                create_page(notion, DATABASE_ID, title, date)
+                date+=timedelta(days=1)
+            case "weekly":
+                create_page(notion, DATABASE_ID, title, date)
+                date+= timedelta(weeks=1)
+            case "monthly":
+                create_page(notion, DATABASE_ID, title, date)
+                date+=timedelta(weeks=4)
+
 
 def main():
+    global notion
     notion = Client(auth=NOTION_API_KEY)
     
-    
+    till_date("weekly", "Hello World", datetime(2024, 11, 10))
 
 
 
