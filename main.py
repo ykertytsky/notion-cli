@@ -1,113 +1,114 @@
-from notion_client import Client
+"""
+Notion CLI by Kertytsky
+"""
+
 from datetime import datetime, timedelta
 
 
-import json
+from notion_client import Client
+import click
+
+
 
 
 from config import NOTION_API_KEY, DATABASE_ID
 
+notion = Client(auth=NOTION_API_KEY)
 
 
-def write_to_json(data, filename):
-    """
-    Write data to a JSON file.
-    
-    Args:
-    data (dict): The data to write to the file.
-    filename (str): The name of the file to write to.
-    """
-    # Open the file in write mode
-    with open(filename, "w", encoding="utf-8") as f:
-        # Dump the data to the file in JSON format
-        json.dump(data, f, ensure_ascii=False)
+@click.group()
+def notion_cli():
+    pass
 
-def retrieve_title(data):
-    """
-    Retrieve the titles from the data.
+@notion_cli.command()
+@click.option("--title", 
+                        prompt="Title of Your task",
+                        help="The Title of Your Task")
+@click.option("--due",  
+                        default=datetime.today().isoformat()[:10],
+                        prompt="Deadline of Your Task (YYYY-MM-DD)",
+                        help="The deadline for your task, today by default")
+@click.option("--status",
+                        default="Not started",
+                        prompt="Set the status for your task. ",
+                        help="The deadline for your tas, today by default"
+              )
+def create_task(title, due, status):
 
-    Args:
-    data (list): A list of dictionaries where each dictionary represents a page.
-
-    Returns:
-    None
-    """
-    result = []
-    # Iterate over each item in the data
-    for i, _ in enumerate(data):
-        # Retrieve the title from the page properties
-        title = data[i]['properties']['Name']['title'][0]['plain_text']
-        # Print the title
-        result.append(title)
-    return result
-
-def create_page(notion, database_id, page_title, due_date):
     new_page = {
         "Name": {
             "title": [
                 {
                     "text": {
-                        "content": page_title
+                        "content": title
                     }
                 }
             ]},
         "Deadline": {
             "date": {
-                "start": due_date.isoformat(),  # Format the date as an ISO 8601 string
-                "end": None,  # Set to None if you don't have an end date
-                "time_zone": None  # You can specify a time zone if needed
+                "start": due,
+                "end": None, 
+                "time_zone": None 
             }
         },
+        "Status": {
+            "id": "Z%3ClH",
+            "type": "status",
+            "status": {
+                "name": status,
+            }}
     }
 
     try:
         # Create the new page in the database
-        response = notion.pages.create(
+        notion.pages.create(
             parent={"database_id": DATABASE_ID},
             properties=new_page
         )
         # Print success message
-        print("Page created successfully!")
+        print("Task created successfully!")
 
     except Exception as e:
         # Print any errors that occur
         print("An error occurred while creating the page:", e)
 
-def times_occurence(kind, times, title, date):
-    for i in range(times):
+def times_occurence(notion, kind, times, title, date):
+    for _ in range(times):
         match kind:
             case "daily":
-                create_page(notion, DATABASE_ID, title, date)
+                create_task(title, date)
                 date+= timedelta(days=1)
             case "weekly":
-                create_page(notion, DATABASE_ID, title, date)
+                create_task(title, date)
                 date+= timedelta(weeks=1)
             case "monthly":
-                create_page(notion, DATABASE_ID, title, date)
+                create_task(title, date)
                 date+=timedelta(weeks=4)
-def till_date(kind, title, deadline):
+def till_date(notion, kind, title, deadline):
     date = datetime.today()
     while date<=deadline:
         match kind:
             case "daily":
-                create_page(notion, DATABASE_ID, title, date)
+                create_task(title, date)
                 date+=timedelta(days=1)
             case "weekly":
-                create_page(notion, DATABASE_ID, title, date)
+                create_task(title, date)
                 date+= timedelta(weeks=1)
             case "monthly":
-                create_page(notion, DATABASE_ID, title, date)
+                create_task(title, date)
                 date+=timedelta(weeks=4)
 
 
-def main():
-    global notion
-    notion = Client(auth=NOTION_API_KEY)
-    
-    till_date("weekly", "Hello World", datetime(2024, 11, 10))
-
+# @click.command()
+# @click.option("--title", prompt="Title of Your task",help="The Title of Your Task")
+# @click.option("--due", default=datetime.today(), prompt="Deadline of your Task", help="The deadline for your task. Today by default")
+# def create_task(notion, title, due):
+#     try:
+#         create_task(notion=notion, title=title, due=due_date)
+#     except Exception as e:
+#         print(f'Ooops, {e} happened')
 
 
 
 if __name__ == "__main__":
-    main()
+    notion_cli()
